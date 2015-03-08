@@ -1,0 +1,126 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'maven-publish'
+    id "com.jfrog.bintray" version "1.1"
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'fr.javatic.ratpack'
+version = '0.1'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.7'
+    compile 'com.couchbase.client:java-client:2.1.1'
+
+    compile 'io.ratpack:ratpack-core:0.9.14'
+    compile 'io.ratpack:ratpack-guice:0.9.14'
+}
+
+idea {
+    project {
+        jdkName "1.8"
+        languageLevel "1.8"
+    }
+}
+
+tasks.withType(Javadoc) {
+    options.links('http://docs.oracle.com/javase/8/docs/api/')
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from 'build/docs/javadoc'
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+def projectInfo = [
+        description: 'Ratpack module for Couchbase Integration',
+        url        : 'https://github.com/ylemoigne/ratpack-couchbase',
+        issues     : 'https://github.com/ylemoigne/ratpack-couchbase/issues',
+        tags       : ['ratpack', 'couchbase', 'rx', 'java8'],
+        scm        : [
+                url     : "git@github.com:ylemoigne/ratpack-couchbase.git",
+                mavenUrl: "scm:git:git@github.com:ylemoigne/ratpack-couchbase.git",
+        ],
+        license    : [
+                shortName: 'Apache-2.0',
+                fullName : 'The Apache Software License, Version 2.0',
+                url      : 'http://www.apache.org/licenses/LICENSE-2.0.txt',
+        ]
+]
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom.withXml {
+                asNode().children().last() + {
+                    resolveStrategy = Closure.DELEGATE_FIRST
+
+                    name project.name
+                    description projectInfo.description
+                    url projectInfo.url
+
+                    scm {
+                        connection projectInfo.scm.mavenUrl
+                        developerConnection projectInfo.scm.mavenUrl
+                        url projectInfo.scm.url
+                    }
+
+                    licenses {
+                        license {
+                            name projectInfo.license.fullName
+                            url projectInfo.license.url
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name "Yann Le Moigne"
+                            email "ylemoigne@javatic.fr"
+                            organization "JavaTIC"
+                            organizationUrl "http://www.javatic.fr"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+bintray {
+    user = bintrayUser
+    key = bintrayKey
+    publications = ['mavenJava']
+    pkg {
+        repo = 'maven'
+        name = project.name
+        desc = projectInfo.description
+        websiteUrl = projectInfo.url
+        issueTrackerUrl = projectInfo.issues
+        vcsUrl = projectInfo.scm.url
+        licenses = [projectInfo.license.shortName]
+        labels = projectInfo.tags
+        version {
+            gpg {
+                sign = true
+                passphrase = gpgPassphrase
+            }
+        }
+    }
+}
